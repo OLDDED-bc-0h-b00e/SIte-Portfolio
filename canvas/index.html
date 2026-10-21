@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Доска идей</title>
+<style>
+:root {
+  --bg: #f4f2ee;
+  --dot: #d8d4cc;
+  --card: #ffffff;
+  --text: #1f1f1f;
+  --muted: #6b6b6b;
+  --border: #dcd8d0;
+  --ui: #ffffff;
+  --accent: #c15f3c;
+  --note: #e0a82e;
+  --link: #3b82c4;
+  --decision: #3f9b6a;
+  --question: #8a63c9;
+  --avoid: #cc4b4b;
+  --image: #6b7280;
+  --shadow: 0 1px 2px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171716; --dot: #2c2c2a; --card: #232322; --text: #ececea;
+    --muted: #9a9a96; --border: #3a3a37; --ui: #232322;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+#viewport { position: fixed; inset: 0; touch-action: none; cursor: grab; background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px); }
+#viewport.panning { cursor: grabbing; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+.card { position: absolute; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); cursor: default; }
+.card.dragging { box-shadow: 0 8px 28px rgba(0,0,0,.25); z-index: 9999; }
+.head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--border); border-top: 3px solid var(--c); border-radius: 10px 10px 0 0; cursor: grab; user-select: none; }
+.tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--c); flex: 1; }
+.head select, .head button { font: inherit; font-size: 12px; background: transparent; color: var(--muted); border: 1px solid transparent; border-radius: 6px; padding: 1px 6px; cursor: pointer; }
+.head button:hover, .head select:hover { border-color: var(--border); color: var(--text); }
+.body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.body textarea, .body input { width: 100%; font: inherit; color: var(--text); background: transparent; border: 0; outline: 0; resize: none; padding: 2px; border-radius: 6px; }
+.body textarea { overflow: hidden; min-height: 40px; }
+.body textarea:focus, .body input:focus { background: color-mix(in srgb, var(--c) 8%, transparent); }
+.body input.url { color: var(--link); font-size: 13px; border-bottom: 1px dashed var(--border); }
+.body img { width: 100%; border-radius: 6px; display: block; background: var(--bg); }
+.domain { font-size: 12px; color: var(--muted); }
+.grip { position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; cursor: ew-resize; opacity: 0; }
+.card:hover .grip { opacity: .6; background: linear-gradient(135deg, transparent 50%, var(--muted) 50%); border-radius: 0 0 10px 0; right: 0; bottom: 0; }
+
+#bar { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; background: var(--ui); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); z-index: 10000; max-width: calc(100vw - 24px); overflow-x: auto; }
+#bar button { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; }
+#bar button:hover { border-color: var(--c, var(--accent)); }
+#bar button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); margin-right: 6px; }
+#bar .sep { width: 1px; background: var(--border); margin: 2px 2px; }
+#status { position: fixed; right: 14px; bottom: 12px; font-size: 12px; color: var(--muted); background: var(--ui); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; z-index: 10000; }
+#status.err { color: var(--avoid); border-color: var(--avoid); }
+.card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.head .del { font-size: 16px; line-height: 1; padding: 2px 8px; }
+.head .del:hover { color: #fff; background: var(--avoid); border-color: var(--avoid); }
+#marquee { position: absolute; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); pointer-events: none; z-index: 99999; }
+#bar #delsel { border-color: var(--avoid); color: var(--avoid); }
+#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: none; align-items: center; gap: 12px; background: var(--ui); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 8px 8px 8px 14px; border-radius: 10px; z-index: 10001; }
+#toast.on { display: flex; }
+#toast button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--accent); border-radius: 7px; padding: 3px 10px; cursor: pointer; }
+#zoom { position: fixed; left: 14px; bottom: 12px; display: flex; gap: 4px; z-index: 10000; }
+#zoom button { width: 30px; height: 30px; border: 1px solid var(--border); background: var(--ui); color: var(--text); border-radius: 8px; cursor: pointer; font: inherit; }
+#hint { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; color: var(--muted); max-width: 440px; padding: 0 16px; pointer-events: none; }
+#hint h2 { color: var(--text); margin: 0 0 8px; }
+#hint p { margin: 4px 0; }
+#drop { position: fixed; inset: 8px; border: 3px dashed var(--accent); border-radius: 16px; display: none; align-items: center; justify-content: center; font-size: 20px; color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); z-index: 20000; pointer-events: none; }
+#drop.on { display: flex; }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="world"></div></div>
+
+<div id="bar">
+  <button data-add="note" style="--c:var(--note)">Заметка</button>
+  <button data-add="link" style="--c:var(--link)">Референс-ссылка</button>
+  <button data-add="decision" style="--c:var(--decision)">Решение</button>
+  <button data-add="question" style="--c:var(--question)">Вопрос</button>
+  <button data-add="avoid" style="--c:var(--avoid)">Не хочу</button>
+  <span class="sep"></span>
+  <button id="fit">Показать всё</button>
+  <button id="delsel" hidden>Удалить выбранное</button>
+</div>
+<div id="toast"><span id="toasttext"></span><button id="undo">Отменить</button></div>
+<div id="zoom"><button id="zout" title="Отдалить">−</button><button id="zin" title="Приблизить">+</button></div>
+<div id="status">Загрузка…</div>
+<div id="hint">
+  <h2>Пустая доска</h2>
+  <p>Вставляйте через <b>Ctrl+V</b>: скриншоты, картинки, ссылки, текст.</p>
+  <p>Перетаскивайте файлы с компьютера прямо сюда.</p>
+  <p>Двойной клик по пустому месту — новая заметка.</p>
+  <p>Удалить: «×» на карточке, либо выделите (клик по заголовку, Shift — несколько или рамка) и нажмите Delete. Ctrl+Z возвращает.</p>
+  <p>Всё сохраняется в папку <b>brief/</b>, и я читаю это оттуда.</p>
+</div>
+<div id="drop">Отпустите, чтобы добавить на доску</div>
+
+<script>
+const TYPES = {
+  note:     { label: 'Заметка',    color: 'var(--note)',     w: 260 },
+  link:     { label: 'Референс',   color: 'var(--link)',     w: 280 },
+  decision: { label: 'Решение',    color: 'var(--decision)', w: 260 },
+  question: { label: 'Вопрос',     color: 'var(--question)', w: 260 },
+  avoid:    { label: 'Не хочу',    color: 'var(--avoid)',    w: 260 },
+  image:    { label: 'Картинка',   color: 'var(--image)',    w: 320 },
+};
+const STATUSES = ['Обсуждаем', 'Принято'];
+
+const vp = document.getElementById('viewport');
+const world = document.getElementById('world');
+const statusEl = document.getElementById('status');
+const hint = document.getElementById('hint');
+let board = { cards: [], view: { x: 0, y: 0, z: 1 } };
+const els = new Map();
+let saveTimer = null;
+let topZ = 1;
+
+// ---------- сохранение ----------
+function setStatus(text, err) { statusEl.textContent = text; statusEl.classList.toggle('err', !!err); }
+
+function scheduleSave() {
+  setStatus('Сохранение…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 500);
+}
+
+async function save() {
+  try {
+    const r = await fetch('/api/board', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ boardJson: JSON.stringify(board, null, 2), md: toMarkdown() }),
+    });
+    if (!r.ok) throw new Error(r.status);
+    setStatus('Сохранено в brief/');
+  } catch (e) {
+    setStatus('Не сохранено — открой через сервер (localhost:3000/canvas/)', true);
+  }
+}
+
+function toMarkdown() {
+  const order = (a, b) => a.y - b.y || a.x - b.x;
+  const by = t => board.cards.filter(c => c.type === t).sort(order);
+  const one = s => (s || '').trim().replace(/\n/g, '\n  ');
+  const out = ['# Доска идей', '', `Обновлено: ${new Date().toLocaleString('ru-RU')}`, ''];
+  const section = (title, items, fmt) => {
+    if (!items.length) return;
+    out.push(`## ${title}`, '');
+    items.forEach(c => out.push(fmt(c)));
+    out.push('');
+  };
+  section('Решения', by('decision'), c => `- [${c.status || 'Обсуждаем'}] ${one(c.text)}`);
+  section('Вопросы', by('question'), c => `- ${one(c.text)}`);
+  section('Референсы-ссылки', by('link'), c => `- ${c.url || '(без ссылки)'}${c.text ? ' — ' + one(c.text) : ''}`);
+  section('Картинки', by('image'), c => `- ![](${(c.img || '').replace(/^\//, '')})${c.text ? ' — ' + one(c.text) : ''}`);
+  section('Не хочу (анти-референсы)', by('avoid'), c => `- ${one(c.text)}`);
+  section('Заметки', by('note'), c => `- ${one(c.text)}`);
+  return out.join('\n');
+}
+
+// ---------- вид ----------
+function applyView() {
+  const v = board.view;
+  world.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z})`;
+  vp.style.backgroundSize = `${24 * v.z}px ${24 * v.z}px`;
+  vp.style.backgroundPosition = `${v.x}px ${v.y}px`;
+}
+function toWorld(cx, cy) { const v = board.view; return { x: (cx - v.x) / v.z, y: (cy - v.y) / v.z }; }
+function center() { return toWorld(innerWidth / 2, innerHeight / 2); }
+
+function zoomAt(cx, cy, factor) {
+  const v = board.view;
+  const z = Math.min(2.5, Math.max(0.15, v.z * factor));
+  v.x = cx - (cx - v.x) * (z / v.z);
+  v.y = cy - (cy - v.y) * (z / v.z);
+  v.z = z;
+  applyView(); scheduleSave();
+}
+
+vp.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.01));
+  else { board.view.x -= e.deltaX; board.view.y -= e.deltaY; applyView(); scheduleSave(); }
+}, { passive: false });
+
+vp.addEventListener('pointerdown', e => {
+  if (e.target !== vp && e.target !== world) return;
+  document.activeElement && document.activeElement.blur();
+  if (e.shiftKey) { startMarquee(e); return; }
+  vp.setPointerCapture(e.pointerId);
+  vp.classList.add('panning');
+  let lx = e.clientX, ly = e.clientY, moved = false;
+  const move = ev => {
+    board.view.x += ev.clientX - lx; board.view.y += ev.clientY - ly;
+    lx = ev.clientX; ly = ev.clientY; moved = true; applyView();
+  };
+  const up = () => {
+    vp.removeEventListener('pointermove', move);
+    vp.removeEventListener('pointerup', up);
+    vp.classList.remove('panning');
+    if (moved) scheduleSave(); else clearSel();
+  };
+  vp.addEventListener('pointermove', move);
+  vp.addEventListener('pointerup', up);
+});
+
+vp.addEventListener('dblclick', e => {
+  if (e.target !== vp && e.target !== world) return;
+  const p = toWorld(e.clientX, e.clientY);
+  addCard({ type: 'note', x: p.x - 130, y: p.y - 20 }, true);
+});
+
+document.getElementById('zin').onclick = () => zoomAt(innerWidth / 2, innerHeight / 2, 1.25);
+document.getElementById('zout').onclick = () => zoomAt(innerWidth / 2, innerHeight / 2, 0.8);
+document.getElementById('fit').onclick = () => {
+  if (!board.cards.length) return;
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  board.cards.forEach(c => {
+    const el = els.get(c.id);
+    x1 = Math.min(x1, c.x); y1 = Math.min(y1, c.y);
+    x2 = Math.max(x2, c.x + c.w); y2 = Math.max(y2, c.y + (el ? el.offsetHeight : 120));
+  });
+  const pad = 80, z = Math.min(1.2, Math.max(0.15, Math.min((innerWidth - pad * 2) / (x2 - x1), (innerHeight - pad * 2 - 60) / (y2 - y1))));
+  board.view.z = z;
+  board.view.x = (innerWidth - (x2 - x1) * z) / 2 - x1 * z;
+  board.view.y = (innerHeight - (y2 - y1) * z) / 2 - y1 * z + 30;
+  applyView(); scheduleSave();
+};
+
+// ---------- выделение и удаление ----------
+const sel = new Set();
+const undoStack = [];
+const delBtn = document.getElementById('delsel');
+const toast = document.getElementById('toast');
+let toastTimer;
+
+function renderSel() {
+  els.forEach((el, id) => el.classList.toggle('selected', sel.has(id)));
+  delBtn.hidden = !sel.size;
+  delBtn.textContent = `Удалить выбранное (${sel.size})`;
+}
+function clearSel() { if (sel.size) { sel.clear(); renderSel(); } }
+
+function showToast(text) {
+  document.getElementById('toasttext').textContent = text;
+  toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('on'), 8000);
+}
+
+function deleteCards(ids) {
+  const gone = board.cards.filter(c => ids.includes(c.id));
+  if (!gone.length) return;
+  board.cards = board.cards.filter(c => !ids.includes(c.id));
+  gone.forEach(c => { els.get(c.id).remove(); els.delete(c.id); sel.delete(c.id); });
+  undoStack.push(gone);
+  renderSel(); updateHint(); scheduleSave();
+  showToast(`Удалено карточек: ${gone.length}`);
+}
+
+function undo() {
+  const gone = undoStack.pop();
+  if (!gone) return;
+  gone.forEach(c => { board.cards.push(c); buildCard(c); });
+  if (!undoStack.length) toast.classList.remove('on');
+  updateHint(); scheduleSave();
+}
+
+function startMarquee(e) {
+  vp.setPointerCapture(e.pointerId);
+  const s = toWorld(e.clientX, e.clientY);
+  const box = document.createElement('div');
+  box.id = 'marquee';
+  world.append(box);
+  const move = ev => {
+    const p = toWorld(ev.clientX, ev.clientY);
+    const x1 = Math.min(s.x, p.x), y1 = Math.min(s.y, p.y), x2 = Math.max(s.x, p.x), y2 = Math.max(s.y, p.y);
+    box.style.cssText = `left:${x1}px;top:${y1}px;width:${x2 - x1}px;height:${y2 - y1}px`;
+    sel.clear();
+    board.cards.forEach(c => {
+      const h = els.get(c.id).offsetHeight;
+      if (c.x < x2 && c.x + c.w > x1 && c.y < y2 && c.y + h > y1) sel.add(c.id);
+    });
+    renderSel();
+  };
+  const up = () => { box.remove(); vp.removeEventListener('pointermove', move); vp.removeEventListener('pointerup', up); };
+  vp.addEventListener('pointermove', move);
+  vp.addEventListener('pointerup', up);
+}
+
+delBtn.onclick = () => deleteCards([...sel]);
+document.getElementById('undo').onclick = undo;
+
+addEventListener('keydown', e => {
+  const inField = e.target.closest && e.target.closest('textarea, input, select');
+  if (inField) { if (e.key === 'Escape') e.target.blur(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && sel.size) { e.preventDefault(); deleteCards([...sel]); }
+  else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyA') { e.preventDefault(); board.cards.forEach(c => sel.add(c.id)); renderSel(); }
+  else if (e.key === 'Escape') clearSel();
+});
+
+// ---------- карточки ----------
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function autosize(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+function domain(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } }
+
+function addCard(partial, focus) {
+  const t = TYPES[partial.type];
+  const c = { id: uid(), text: '', w: t.w, ...partial };
+  if (c.x === undefined) {
+    const p = center();
+    const n = board.cards.length % 6;
+    c.x = p.x - c.w / 2 + n * 24; c.y = p.y - 60 + n * 24;
+  }
+  board.cards.push(c);
+  const el = buildCard(c);
+  if (focus) { const f = el.querySelector('textarea, input'); f && f.focus(); }
+  updateHint(); scheduleSave();
+  return c;
+}
+
+function buildCard(c) {
+  const t = TYPES[c.type];
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.style.cssText = `--c:${t.color}; left:${c.x}px; top:${c.y}px; width:${c.w}px; z-index:${++topZ}`;
+
+  const head = document.createElement('div');
+  head.className = 'head';
+  head.innerHTML = `<span class="tag">${t.label}</span>`;
+  if (c.type === 'decision') {
+    const sel = document.createElement('select');
+    STATUSES.forEach(s => sel.add(new Option(s, s)));
+    sel.value = c.status || STATUSES[0];
+    sel.onchange = () => { c.status = sel.value; scheduleSave(); };
+    head.append(sel);
+  }
+  if (c.type === 'link' && c.url) {
+    const open = document.createElement('button');
+    open.textContent = '↗'; open.title = 'Открыть ссылку';
+    open.onclick = () => window.open(c.url, '_blank', 'noopener');
+    head.append(open);
+  }
+  const del = document.createElement('button');
+  del.className = 'del';
+  del.textContent = '×'; del.title = 'Удалить (можно отменить: Ctrl+Z)';
+  del.onclick = () => deleteCards([c.id]);
+  head.append(del);
+
+  const body = document.createElement('div');
+  body.className = 'body';
+  const ta = () => {
+    const a = document.createElement('textarea');
+    a.value = c.text || '';
+    a.rows = 1;
+    a.oninput = () => { c.text = a.value; autosize(a); scheduleSave(); };
+    return a;
+  };
+
+  let main;
+  if (c.type === 'link') {
+    const url = document.createElement('input');
+    url.className = 'url'; url.placeholder = 'https://…'; url.value = c.url || '';
+    const dom = document.createElement('div'); dom.className = 'domain'; dom.textContent = domain(c.url);
+    url.onchange = () => {
+      c.url = url.value.trim(); dom.textContent = domain(c.url);
+      if (!head.querySelector('button[title="Открыть ссылку"]') && c.url) {
+        const open = document.createElement('button');
+        open.textContent = '↗'; open.title = 'Открыть ссылку';
+        open.onclick = () => window.open(c.url, '_blank', 'noopener');
+        head.insertBefore(open, del);
+      }
+      scheduleSave();
+    };
+    main = ta(); main.placeholder = 'Что тут нравится / зачем это…';
+    body.append(url, dom, main);
+  } else if (c.type === 'image') {
+    const img = document.createElement('img'); img.src = c.img; img.draggable = false;
+    img.onload = () => scheduleSave();
+    main = ta(); main.placeholder = 'Подпись: что именно тут важно…';
+    body.append(img, main);
+  } else {
+    main = ta();
+    main.placeholder = {
+      note: 'Мысль, идея, описание…',
+      decision: 'Что решили и почему…',
+      question: 'Что нужно уточнить…',
+      avoid: 'Чего точно не должно быть…',
+    }[c.type];
+    body.append(main);
+  }
+
+  const grip = document.createElement('div');
+  grip.className = 'grip';
+  grip.addEventListener('pointerdown', e => {
+    e.stopPropagation(); grip.setPointerCapture(e.pointerId);
+    const sx = e.clientX, sw = c.w;
+    const move = ev => { c.w = Math.max(160, sw + (ev.clientX - sx) / board.view.z); el.style.width = c.w + 'px'; autosize(main); };
+    const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); scheduleSave(); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up);
+  });
+
+  el.append(head, body, grip);
+  world.append(el);
+  els.set(c.id, el);
+  requestAnimationFrame(() => autosize(main));
+
+  head.addEventListener('pointerdown', e => {
+    if (e.target.closest('button, select')) return;
+    if (e.shiftKey) { sel.has(c.id) ? sel.delete(c.id) : sel.add(c.id); renderSel(); return; }
+    if (!sel.has(c.id)) { sel.clear(); sel.add(c.id); renderSel(); }
+    head.setPointerCapture(e.pointerId);
+    el.classList.add('dragging');
+    el.style.zIndex = ++topZ;
+    let lx = e.clientX, ly = e.clientY;
+    const move = ev => {
+      const dx = (ev.clientX - lx) / board.view.z, dy = (ev.clientY - ly) / board.view.z;
+      lx = ev.clientX; ly = ev.clientY;
+      board.cards.filter(x => sel.has(x.id)).forEach(x => {
+        x.x += dx; x.y += dy;
+        const xe = els.get(x.id); xe.style.left = x.x + 'px'; xe.style.top = x.y + 'px';
+      });
+    };
+    const up = () => {
+      head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up);
+      el.classList.remove('dragging'); scheduleSave();
+    };
+    head.addEventListener('pointermove', move); head.addEventListener('pointerup', up);
+  });
+  return el;
+}
+
+function updateHint() { hint.style.display = board.cards.length ? 'none' : 'block'; }
+
+document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => addCard({ type: b.dataset.add }, true));
+
+// ---------- картинки: вставка и перетаскивание ----------
+const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg' };
+
+async function addImageFile(file, at) {
+  const ext = EXT[file.type];
+  if (!ext) return;
+  setStatus('Загрузка картинки…');
+  try {
+    const r = await fetch('/api/upload?ext=' + ext, { method: 'POST', body: file });
+    if (!r.ok) throw new Error(r.status);
+    const { path } = await r.json();
+    const c = { type: 'image', img: path };
+    if (at) { c.x = at.x; c.y = at.y; }
+    addCard(c, false);
+  } catch (e) {
+    setStatus('Не удалось загрузить картинку', true);
+  }
+}
+
+document.addEventListener('paste', e => {
+  const files = [...(e.clipboardData.files || [])].filter(f => EXT[f.type]);
+  const inField = e.target.closest && e.target.closest('textarea, input');
+  if (files.length) {
+    e.preventDefault();
+    const p = center();
+    files.forEach((f, i) => addImageFile(f, { x: p.x - 160 + i * 30, y: p.y - 100 + i * 30 }));
+    return;
+  }
+  if (inField) return;
+  const text = (e.clipboardData.getData('text') || '').trim();
+  if (!text) return;
+  e.preventDefault();
+  if (/^https?:\/\/\S+$/i.test(text)) addCard({ type: 'link', url: text }, false);
+  else addCard({ type: 'note', text }, false);
+});
+
+const dropEl = document.getElementById('drop');
+let dragDepth = 0;
+addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; dropEl.classList.add('on'); });
+addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; dropEl.classList.remove('on'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; dropEl.classList.remove('on');
+  const p = toWorld(e.clientX, e.clientY);
+  const files = [...e.dataTransfer.files].filter(f => EXT[f.type]);
+  if (files.length) { files.forEach((f, i) => addImageFile(f, { x: p.x + i * 30, y: p.y + i * 30 })); return; }
+  const text = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text') || '').trim();
+  if (/^https?:\/\/\S+$/i.test(text)) addCard({ type: 'link', url: text, x: p.x, y: p.y }, false);
+  else if (text) addCard({ type: 'note', text, x: p.x, y: p.y }, false);
+});
+
+// ---------- старт ----------
+(async function init() {
+  try {
+    const r = await fetch('/api/board');
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    board = { cards: data.cards || [], view: data.view || { x: 0, y: 0, z: 1 } };
+    // PowerShell превращает пустой/одиночный массив в не-массив; нормализуем
+    if (!Array.isArray(board.cards)) board.cards = board.cards ? [board.cards] : [];
+    board.cards.forEach(buildCard);
+    setStatus('Готово');
+  } catch (e) {
+    setStatus('Нет связи с сервером — открой localhost:3000/canvas/', true);
+  }
+  applyView(); updateHint();
+})();
+</script>
+</body>
+</html>

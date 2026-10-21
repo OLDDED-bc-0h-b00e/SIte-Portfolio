@@ -4,7 +4,10 @@
 
 ## Стек
 - Статический сайт: чистые HTML / CSS / JS, без сборки и зависимостей (на машине нет Node, Python и Git).
-- Структура: `site/index.html`, `site/css/styles.css`, `site/js/main.js`, `site/assets/`.
+- Структура: `site/index.html`, `site/css/styles.css`, `site/js/main.js` (логика, эффекты), `site/js/i18n.js` (тексты RU/EN, ключи = `data-i18n` в HTML), `site/assets/` (фото, favicon).
+- Внешнее: шрифт Manrope (Google Fonts), Lenis 1.1.13 (плавный скролл, jsdelivr). GSAP не используется. Если CDN недоступен, сайт работает без них.
+- Макет и решения: итоговый макет `brief/assets/wire-3c-final.svg`, хедер по центру, Hero на всю ширину, услуги аккордеоном, кейсы 3D-каруселью, footer с заливающейся надписью. Палитра: тёплый тёмный `#16130f`, акцент `#d8c3a3`.
+- Любой новый текст добавляй в оба языка в `i18n.js`. Цены: RU в ₽, EN в $.
 - Локальный сервер: `serve.ps1` (PowerShell, порт 3000), конфиг в `.claude/launch.json`.
 
 ## Доска идей (brief)

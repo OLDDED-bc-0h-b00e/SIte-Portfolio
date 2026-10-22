@@ -174,7 +174,7 @@
   const giant = $('#giant'), giantFill = $('#giantFill');
   const body = () => ({ x: 0, y: 0, vx: 0, vy: 0 });
   const light = body(), fill = body();
-  let lightInit = false, fillInit = false, lastT = performance.now();
+  let lightInit = false, fillInit = false, lastT = performance.now(), frameN = 0;
   const ctaState = { x: 0, y: 0, tx: 0, ty: 0 };
   let heroVisible = true, footerVisible = false;
   new IntersectionObserver(es => { heroVisible = es[0].isIntersecting; }).observe(hero);
@@ -201,7 +201,7 @@
 
   function sizeTrail() {
     const heroH = hero.clientHeight || innerHeight;
-    const sc = clamp(devicePixelRatio * 0.7, 0.7, 1.1);
+    const sc = fineHover ? clamp(devicePixelRatio * 0.7, 0.7, 1.1) : 0.5;
     const visH = Math.min(geo.ih, heroH * 1.08);
     trail.sc = sc; trail.visH = visH;
     trail.cw = Math.max(1, Math.round(geo.iw * sc)); trail.ch = Math.max(1, Math.round(visH * sc));
@@ -221,7 +221,14 @@
     sizeTrail();
   }
   layoutHero();
-  window.addEventListener('resize', layoutHero);
+  /* На телефоне адресная строка при скролле меняет высоту окна и шлёт resize: перерасчёт нужен только при реальной смене размера */
+  let lastW = hero.clientWidth, lastH = hero.clientHeight;
+  window.addEventListener('resize', () => {
+    const w = hero.clientWidth, h = hero.clientHeight;
+    if (w === lastW && Math.abs(h - lastH) < 160) return;
+    lastW = w; lastH = h;
+    layoutHero();
+  });
 
   function stamp(x, y, r, a) {
     const g = mctx.createRadialGradient(x, y, 0, x, y, r);
@@ -290,7 +297,8 @@
       if (reduceMotion) { light.x = tx; light.y = ty; light.vx = light.vy = 0; }
       else spring(light, tx, ty, dt, 70, 9);
 
-      const par = clamp(-r.top, 0, r.height) * 0.18;
+      /* параллакс только для мыши: на телефоне JS отстаёт от нативного скролла и картинка дрожит */
+      const par = fineHover ? clamp(-r.top, 0, r.height) * 0.18 : 0;
       const tr = `translate3d(0, ${par.toFixed(1)}px, 0)`;
       heroAmb.style.transform = heroBg.style.transform = heroLit.style.transform = heroShade.style.transform = tr;
 
@@ -300,7 +308,7 @@
       const cy = r.top + light.y * r.height - cr.top;
       const speed = Math.hypot(light.vx * r.width, light.vy * r.height);
       const base = Math.max(220, Math.min(420, r.width * 0.2)) * 0.55;
-      paintTrail(cx, cy, base * (1 + Math.min(speed / 2600, 0.35)));
+      if (fineHover || (frameN++ & 1) === 0) paintTrail(cx, cy, base * (1 + Math.min(speed / 2600, 0.35)));
 
       if (fineHover && mouse.has && !reduceMotion) {
         const br = cta.getBoundingClientRect();
@@ -386,6 +394,21 @@
     setTimeout(() => { dragMoved = false; }, 0);
   });
   render();
+
+  /* ---------- Копирование контактов ---------- */
+  $$('.copy').forEach(btn => btn.addEventListener('click', async () => {
+    const text = btn.dataset.copy;
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select();
+      try { document.execCommand('copy'); } catch { /* буфер недоступен */ }
+      ta.remove();
+    }
+    btn.classList.add('is-done'); btn.textContent = t('ct.copied') || 'Copied';
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.classList.remove('is-done'); btn.textContent = t('ct.copy') || 'Copy'; }, 1600);
+  }));
 
   /* ---------- Линия процесса ---------- */
   const steps = $('#steps'), stepsLine = $('#stepsLine'), stepItems = $$('li', steps);

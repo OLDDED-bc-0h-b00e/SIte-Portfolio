@@ -71,8 +71,12 @@ window.I18N = {
     'pr.4.d': 'Передаю готовый проект и объясняю, как им пользоваться.',
     'pr.time': 'Сроки: от 2 дней до недели',
     'ft.title': 'Давайте сделаем ваш проект',
-    'ft.sub': 'Напишите мне в Telegram, отвечу и обсудим детали.',
-    'ft.cta': 'Написать в Telegram',
+    'ft.sub': 'Выберите удобный способ связи, отвечу и обсудим детали.',
+    'ct.ring': 'Давайте поговорим · Давайте поговорим · ',
+    'ct.mail': 'Почта',
+    'ct.phone': 'Телефон',
+    'ct.copy': 'Копировать',
+    'ct.copied': 'Скопировано',
     'ft.rights': '© 2026 MOONLIGHT · Влад'
   },
   en: {
@@ -146,8 +150,12 @@ window.I18N = {
     'pr.4.d': 'I hand over the finished project and explain how to use it.',
     'pr.time': 'Timeline: from 2 days to a week',
     'ft.title': "Let's build your project",
-    'ft.sub': "Message me on Telegram and we'll discuss the details.",
-    'ft.cta': 'Message on Telegram',
+    'ft.sub': "Pick the way that suits you, I'll reply and we'll discuss the details.",
+    'ct.ring': "Let's talk · Let's talk · Let's talk · ",
+    'ct.mail': 'Email',
+    'ct.phone': 'Phone',
+    'ct.copy': 'Copy',
+    'ct.copied': 'Copied',
     'ft.rights': '© 2026 MOONLIGHT · Vlad'
   }
 };

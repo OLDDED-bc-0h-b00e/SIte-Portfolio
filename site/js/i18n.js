@@ -13,7 +13,7 @@ window.I18N = {
     'nav.process': 'Процесс',
     'nav.contact': 'Контакты',
     'pl.phrase': 'Спокойно. Точно. Надёжно.',
-    'hero.kicker': 'Боты · Сайты · Figma → код',
+    'hero.kicker': 'Боты · Сайты · Figma → код',
     'hero.sub': 'Спокойные, быстрые и надёжные цифровые продукты. Telegram-боты, сайты и перенос дизайна в код.',
     'hero.cta': 'Написать',
     'hero.scroll': 'Листайте',
@@ -77,6 +77,7 @@ window.I18N = {
     'ct.phone': 'Телефон',
     'ct.copy': 'Копировать',
     'ct.copied': 'Скопировано',
+    'ct.copyFail': 'Не вышло',
     'ft.rights': '© 2026 MOONLIGHT · Влад'
   },
   en: {
@@ -92,7 +93,7 @@ window.I18N = {
     'nav.process': 'Process',
     'nav.contact': 'Contact',
     'pl.phrase': 'Calm. Precise. Reliable.',
-    'hero.kicker': 'Bots · Websites · Figma to code',
+    'hero.kicker': 'Bots · Websites · Figma to code',
     'hero.sub': 'Calm, fast and reliable digital products. Telegram bots, websites and Figma-to-code.',
     'hero.cta': 'Message me',
     'hero.scroll': 'Scroll',
@@ -156,6 +157,7 @@ window.I18N = {
     'ct.phone': 'Phone',
     'ct.copy': 'Copy',
     'ct.copied': 'Copied',
+    'ct.copyFail': 'Failed',
     'ft.rights': '© 2026 MOONLIGHT · Vlad'
   }
 };

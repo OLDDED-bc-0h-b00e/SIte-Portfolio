@@ -126,7 +126,11 @@
     syncBurgerLabel();
   }
   burger.addEventListener('click', () => toggleMenu());
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('nav-open')) toggleMenu(false); });
+  /* поворот планшета шире 860px прячет бургер: закрываем меню, иначе скролл остаётся заблокированным */
+  matchMedia('(min-width: 861px)').addEventListener('change', e => {
+    if (e.matches && document.body.classList.contains('nav-open')) toggleMenu(false);
+  });
 
   $$('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
     const id = a.getAttribute('href');
@@ -189,7 +193,7 @@
   /* Фото 969x1624 показываем по высоте экрана: видно лицо и корпус, строго по центру.
      На широких экранах края уходят в фон, на узких режем по бокам, но не по лицу. */
   const PHOTO = { ratio: 1624 / 969, faceX: 0.49, faceY: 0.15 };
-  const geo = { iw: 0, il: 0, ih: 0 };
+  const geo = { iw: 0, il: 0, ih: 0, it: 0 };
 
   /* След: в maskCanvas копятся мягкие мазки кисти и постепенно гаснут, через них проявляется цветная копия фото */
   const trailCanvas = $('#heroTrail'), tctx = trailCanvas.getContext('2d');
@@ -216,9 +220,12 @@
     const W = hero.clientWidth, H = hero.clientHeight || innerHeight;
     const iw = Math.max(Math.min(W, 1.39 * H), H / PHOTO.ratio);
     const il = (W - iw) / 2;
-    geo.iw = iw; geo.il = il; geo.ih = iw * PHOTO.ratio;
+    /* на узком экране фото на всю ширину и голова попадает под логотип: опускаем кадр на высоту хедера */
+    const it = W <= 860 ? header.offsetHeight : 0;
+    geo.iw = iw; geo.il = il; geo.ih = iw * PHOTO.ratio; geo.it = it;
     hero.style.setProperty('--iw', iw.toFixed(1) + 'px');
     hero.style.setProperty('--il', il.toFixed(1) + 'px');
+    hero.style.setProperty('--it', it + 'px');
     sizeTrail();
   }
   layoutHero();
@@ -267,7 +274,7 @@
   function facePoint(r) {
     return {
       x: clamp((geo.il + geo.iw * PHOTO.faceX) / r.width, 0, 1),
-      y: clamp((-0.04 * r.height + geo.ih * PHOTO.faceY) / r.height, 0, 1),
+      y: clamp((-0.04 * r.height + geo.it + geo.ih * PHOTO.faceY) / r.height, 0, 1),
     };
   }
 
@@ -306,7 +313,7 @@
       /* позиция кисти: точка пружины -> координаты цветного канваса */
       const cr = heroLit.getBoundingClientRect();
       const cx = r.left + light.x * r.width - (cr.left + geo.il);
-      const cy = r.top + light.y * r.height - cr.top;
+      const cy = r.top + light.y * r.height - (cr.top + geo.it);
       const speed = Math.hypot(light.vx * r.width, light.vy * r.height);
       const base = Math.max(220, Math.min(420, r.width * 0.2)) * 0.55;
       if (fineHover || (frameN++ & 1) === 0) paintTrail(cx, cy, base * (1 + Math.min(speed / 2600, 0.35)));
@@ -345,6 +352,8 @@
   requestAnimationFrame(frame);
 
   /* ---------- Аккордеон услуг ---------- */
+  /* закрытая панель inert: её кнопка «Заказать» не получает фокус с клавиатуры */
+  const syncAcc = () => $$('.acc__item').forEach(i => { $('.acc__panel', i).inert = !i.classList.contains('is-open'); });
   $$('.acc__btn').forEach(btn => btn.addEventListener('click', () => {
     const item = btn.closest('.acc__item');
     const open = !item.classList.contains('is-open');
@@ -353,7 +362,9 @@
       $('.acc__btn', i).setAttribute('aria-expanded', 'false');
     });
     if (open) { item.classList.add('is-open'); btn.setAttribute('aria-expanded', 'true'); }
+    syncAcc();
   }));
+  syncAcc();
 
   /* ---------- 3D-карусель кейсов ---------- */
   const stage = $('#stage'), cases = $$('.case', stage), dotsBox = $('#dots');
@@ -394,19 +405,23 @@
     if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1));
     setTimeout(() => { dragMoved = false; }, 0);
   });
+  /* браузер забрал жест под вертикальный скролл: pointerup не придёт, сбрасываем старт свайпа */
+  window.addEventListener('pointercancel', () => { dragX = null; dragMoved = false; });
   render();
 
   /* ---------- Копирование контактов ---------- */
   $$('.copy').forEach(btn => btn.addEventListener('click', async () => {
     const text = btn.dataset.copy;
+    let ok = true;
     try { await navigator.clipboard.writeText(text); }
     catch {
       const ta = document.createElement('textarea');
       ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select();
-      try { document.execCommand('copy'); } catch { /* буфер недоступен */ }
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
       ta.remove();
     }
-    btn.classList.add('is-done'); btn.textContent = t('ct.copied') || 'Copied';
+    btn.classList.toggle('is-done', ok);
+    btn.textContent = ok ? (t('ct.copied') || 'Copied') : (t('ct.copyFail') || 'Failed');
     clearTimeout(btn._t);
     btn._t = setTimeout(() => { btn.classList.remove('is-done'); btn.textContent = t('ct.copy') || 'Copy'; }, 1600);
   }));

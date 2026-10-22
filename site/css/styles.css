@@ -98,31 +98,33 @@ ul, ol { padding: 0; list-style: none; }
 .burger[aria-expanded="true"] span:nth-child(2) { top: 17px; transform: rotate(-45deg); }
 
 /* ---------- Hero ---------- */
-.hero { position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 var(--gutter) clamp(28px, 5vw, 56px); }
+/* --hero-pb: отступ заголовка от низа, --title-fs: кегль MOONLIGHT; по ним кнопка встаёт над заголовком, а не на букву T */
+.hero { --hero-pb: clamp(28px, 5vw, 56px); --title-fs: clamp(2.6rem, 13.6vw, 14rem); position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 var(--gutter) var(--hero-pb); }
 .hero { background: radial-gradient(ellipse 60% 75% at 56% 35%, #2b2620, var(--bg) 78%); }
 .hero__amb, .hero__bg, .hero__lit, .hero__shade { position: absolute; inset: -4% 0; z-index: -1; will-change: transform; }
 /* Размытая копия того же фото: даёт фону по бокам родной тон стены, без шва на краях кадра */
 .hero__amb { overflow: hidden; }
 .hero__amb img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; transform: scale(1.25); filter: blur(70px) grayscale(1) sepia(.12) brightness(.4); }
-/* Фото показываем целиком по высоте экрана (лицо и корпус), ширину и сдвиг считает JS (--iw, --il); края плавно уходят в фон */
+/* Фото показываем целиком по высоте экрана (лицо и корпус), ширину и сдвиг считает JS (--iw, --il, --it); края плавно уходят в фон */
 .hero__bg img, .hero__lit canvas {
-  position: absolute; top: 0; left: var(--il, 0px); width: var(--iw, 100%); max-width: none; height: auto;
+  position: absolute; top: var(--it, 0px); left: var(--il, 0px); width: var(--iw, 100%); max-width: none; height: auto;
   -webkit-mask-image: linear-gradient(to right, transparent 0, rgba(0,0,0,.04) 4%, rgba(0,0,0,.16) 8%, rgba(0,0,0,.4) 13%, rgba(0,0,0,.7) 18%, rgba(0,0,0,.92) 23%, #000 28%, #000 72%, rgba(0,0,0,.92) 77%, rgba(0,0,0,.7) 82%, rgba(0,0,0,.4) 87%, rgba(0,0,0,.16) 92%, rgba(0,0,0,.04) 96%, transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, rgba(0,0,0,.04) 4%, rgba(0,0,0,.16) 8%, rgba(0,0,0,.4) 13%, rgba(0,0,0,.7) 18%, rgba(0,0,0,.92) 23%, #000 28%, #000 72%, rgba(0,0,0,.92) 77%, rgba(0,0,0,.7) 82%, rgba(0,0,0,.4) 87%, rgba(0,0,0,.16) 92%, rgba(0,0,0,.04) 96%, transparent 100%);
 }
 /* Фото чёрно-белое; цветной слой (canvas) проявляется только там, где прошёл курсор, и плавно гаснет */
 .hero__bg img { filter: grayscale(1) sepia(.12) brightness(.52) contrast(1.06); }
-.hero__lit canvas { height: auto; filter: url(#trailCut) saturate(1.1) contrast(1.04) brightness(1.14); pointer-events: none; }
+/* яркость цветного слоя близка к ч/б основе (.52): свет проявляет цвет и тёплый тон, а не выжигает светлую стену в белое пятно */
+.hero__lit canvas { height: auto; filter: url(#trailCut) sepia(.18) saturate(1.15) contrast(1.06) brightness(.74); pointer-events: none; }
 .hero__shade { background: radial-gradient(ellipse 75% 85% at 50% 42%, transparent 55%, rgba(22, 19, 15, .6) 100%), linear-gradient(to top, var(--bg) 2%, rgba(22, 19, 15, .55) 30%, transparent 60%), linear-gradient(to bottom, rgba(22, 19, 15, .6), transparent 16%); }
 .hero__copy { text-shadow: 0 1px 14px rgba(0, 0, 0, .75), 0 0 2px rgba(0, 0, 0, .5); position: absolute; left: var(--gutter); top: clamp(120px, 20vh, 190px); max-width: 440px; display: grid; gap: 14px; }
 .kicker { font-size: 12px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); }
 .hero__sub { color: var(--text); opacity: .82; font-size: clamp(14px, 1.6vw, 16px); }
-.hero__title { position: relative; font-weight: 200; font-size: clamp(2.6rem, 13.6vw, 14rem); line-height: .95; letter-spacing: .04em; margin-left: -.04em; white-space: nowrap; display: flex; }
+.hero__title { position: relative; font-weight: 200; font-size: var(--title-fs); line-height: .95; letter-spacing: .04em; margin-left: -.04em; white-space: nowrap; display: flex; }
 .hero__title .ch { display: inline-block; overflow: hidden; padding-bottom: .06em; }
 .hero__title .ch i { display: inline-block; font-style: normal; transform: translateY(110%); transition: transform 1.1s var(--ease); transition-delay: calc(var(--n) * 60ms + 150ms); }
 .hero.is-in .hero__title .ch i { transform: none; }
 .hero__cta {
-  position: absolute; right: var(--gutter); bottom: clamp(56px, 10vw, 150px); z-index: 2;
+  position: absolute; right: var(--gutter); bottom: calc(var(--hero-pb) + var(--title-fs) * .95 + 20px); z-index: 2;
   width: clamp(92px, 11vw, 130px); aspect-ratio: 1; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
   display: grid; place-items: center; font-weight: 600; font-size: 14px; will-change: transform;
   box-shadow: 0 10px 40px rgba(216, 195, 163, .18); transition: box-shadow .4s, background .3s;
@@ -132,11 +134,13 @@ ul, ol { padding: 0; list-style: none; }
 .hero__scroll i { width: 1px; height: 34px; background: linear-gradient(var(--accent), transparent); animation: drip 2.2s ease-in-out infinite; transform-origin: top; }
 @keyframes drip { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
 [data-hero] { opacity: 0; transform: translateY(14px); transition: opacity 1s ease, transform 1s var(--ease); }
-.hero__cta[data-hero] { transform: scale(.8); }
 .hero.is-in [data-hero="1"] { transition-delay: .2s; }
 .hero.is-in [data-hero="2"] { transition-delay: .4s; }
 .hero.is-in [data-hero="3"] { transition-delay: .9s; }
 .hero.is-in [data-hero] { opacity: 1; transform: none; }
+/* Кнопка: появление через scale, а transform свободен для магнита (его каждый кадр ставит JS, transition на нём даёт задержку) */
+.hero__cta[data-hero] { transform: none; scale: .8; transition: opacity 1s ease, scale 1s var(--ease), box-shadow .4s, background .3s; }
+.hero.is-in .hero__cta[data-hero] { scale: 1; transition-delay: .9s, .9s, 0s, 0s; }
 
 /* ---------- Sections ---------- */
 .section { padding: clamp(80px, 12vw, 150px) 0; border-top: 1px solid var(--line); }
@@ -304,7 +308,7 @@ h3 { font-weight: 500; }
   /* текст на светлой одежде и под светом читается плохо: подкладка-стекло и более плотный шрифт */
   .hero__copy { top: auto; bottom: calc(12.6vw + 56px); max-width: calc(100% - var(--gutter) * 2 - 100px); gap: 10px; padding: 12px 14px; margin-left: -4px; border-radius: 16px; background: rgba(22, 19, 15, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(216, 195, 163, .14); text-shadow: 0 1px 8px rgba(0, 0, 0, .7); }
   .hero__sub { opacity: .95; font-weight: 500; }
-  .hero__title { font-size: 12.6vw; }
+  .hero { --title-fs: 12.6vw; }
   .hero__cta { bottom: calc(12.6vw + 64px); width: 88px; font-size: 13px; }
   .hero__scroll { display: none; }
   .acc__btn { grid-template-columns: 30px 1fr 28px; }
@@ -323,7 +327,8 @@ h3 { font-weight: 500; }
   .copy { min-width: 92px; }
   .stage { height: 460px; }
 }
-@media (min-width: 861px) { .hero__scroll { display: flex; } }
+/* «Листайте» (~76px от низа) стоит под заголовком, а не поверх него */
+@media (min-width: 861px) { .hero { --hero-pb: clamp(92px, 9vw, 120px); } .hero__scroll { display: flex; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; transition-delay: 0ms !important; }

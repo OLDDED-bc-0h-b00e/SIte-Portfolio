@@ -201,7 +201,8 @@
 
   function sizeTrail() {
     const heroH = hero.clientHeight || innerHeight;
-    const sc = fineHover ? clamp(devicePixelRatio * 0.7, 0.7, 1.1) : 0.5;
+    /* на телефоне холст маленький по CSS-размеру, но экран плотный: разрешение 1-1.5x, иначе цветной слой выходит пиксельным */
+    const sc = fineHover ? clamp(devicePixelRatio * 0.7, 0.7, 1.1) : clamp(devicePixelRatio * 0.75, 1, 1.5);
     const visH = Math.min(geo.ih, heroH * 1.08);
     trail.sc = sc; trail.visH = visH;
     trail.cw = Math.max(1, Math.round(geo.iw * sc)); trail.ch = Math.max(1, Math.round(visH * sc));
